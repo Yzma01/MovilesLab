@@ -13,7 +13,7 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.person),
             onPressed: () {
-              Navigator.pushNamed(context, '/ profile ');
+              Navigator.pushNamed(context, '/profile');
             },
           ),
         ],
@@ -58,7 +58,7 @@ class HomeScreen extends StatelessWidget {
               leading: Icon(Icons.person),
               title: Text(' Perfil '),
               onTap: () {
-                Navigator.pushNamed(context, '/ profile ');
+                Navigator.pushNamed(context, '/profile ');
               },
             ),
             //Map
@@ -66,7 +66,7 @@ class HomeScreen extends StatelessWidget {
               leading: Icon(Icons.map_outlined),
               title: Text("Mapa"),
               onTap: () {
-                Navigator.pushNamed(context, '/ map');
+                Navigator.pushNamed(context, '/map');
               },
             ),
             //Sign Out
@@ -74,7 +74,7 @@ class HomeScreen extends StatelessWidget {
               leading: Icon(Icons.exit_to_app),
               title: Text("Salir"),
               onTap: () {
-                Navigator.pushReplacementNamed(context, '/ ');
+                Navigator.pushReplacementNamed(context, '/');
               },
             ),
           ],
