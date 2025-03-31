@@ -1,6 +1,6 @@
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
+// lib/screens/sign_up_screen.dart
 import 'package:flutter/material.dart';
+import 'auth_service.dart';
 
 class SignUpScreen extends StatefulWidget {
   @override
@@ -8,127 +8,172 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _userEmailController = TextEditingController();
   final _userPasswordController = TextEditingController();
   final _userFullNameController = TextEditingController();
   final _userPhoneController = TextEditingController();
-  final _userIDController = TextEditingController();
-  final _userPasswordVerificationController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
-  bool passwordsMatch() {
-    final password = _userPasswordController.text.trim();
-    final verification = _userPasswordVerificationController.text.trim();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  final AuthService _authService = AuthService();
 
-    return password == verification && password.isNotEmpty;
+  bool _passwordsMatch() {
+    return _userPasswordController.text == _confirmPasswordController.text;
   }
 
-  void _registerUser()async{
-      final password = _userPasswordController.text;
-      final email = _userEmailController.text;
-      final id = _userIDController.text;
-      final name = _userFullNameController.text;
-      final phone = _userPhoneController.text;
-  //   try {
-  //     UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: password);
-  //     await FirebaseFirestore.instance
-  //       .collection('users')
-  //       .doc(id)
-  //       .set({
-  //       'email': email,
-  //       'name': name,
-  //       'phone': phone,
-  //       'createdAt': Timestamp.now(),
-  //     });
-  //   print('Usuario registrado con ID: ${userCredential.user!.uid}');
-  //   } on FirebaseAuthException catch (e) {
-  //   print('Error de autenticación: ${e.code} - ${e.message}');
-  // } catch (e) {
-  //   print('Error general: $e');
-  //   throw e;
-  // }
-  }
-
-  void _SignUp() async {
-    if (passwordsMatch() &&
-        _userPasswordController.text.isNotEmpty &&
-        _userEmailController.text.isNotEmpty &&
-        _userFullNameController.text.isNotEmpty &&
-        _userPhoneController.text.isNotEmpty) {
-          _registerUser();
-        Navigator.pushReplacementNamed(context, '/ ');
-    } else {
+  Future<void> _registerUser() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (!_passwordsMatch()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(' Por favor , llene todos los datos ')),
+        const SnackBar(content: Text('Las contraseñas no coinciden')),
       );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final user = await _authService.registerUser(
+        email: _userEmailController.text,
+        password: _userPasswordController.text,
+        fullName: _userFullNameController.text,
+        phone: _userPhoneController.text,
+      );
+
+      if (user != null) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
-  Column customTextField({
+  Widget _buildTextField({
     required TextEditingController controller,
-    required String labelText,
-    double spacing = 20.0,
+    required String label,
+    required String? Function(String?) validator,
     bool obscureText = false,
     TextInputType? keyboardType,
+    Widget? suffixIcon,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: controller,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          decoration: InputDecoration(
-            labelText: labelText,
-            border: const OutlineInputBorder(),
-            contentPadding: const EdgeInsets.all(12),
-          ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        validator: validator,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          suffixIcon: suffixIcon,
         ),
-        SizedBox(height: spacing),
-      ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(' Registro ')),
-      body: Padding(
+      appBar: AppBar(title: const Text('Registro')),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            //ID
-            customTextField(controller: _userIDController, labelText: "ID"),
-            //Full name
-            customTextField(
-              controller: _userFullNameController,
-              labelText: "Nombre Completo",
-            ),
-            //Email
-            customTextField(
-              controller: _userEmailController,
-              labelText: "Correo Electrónico",
-            ),
-            //Phone
-            customTextField(
-              controller: _userPhoneController,
-              labelText: "Teléfono",
-            ),
-            //Password
-            customTextField(
-              controller: _userPasswordController,
-              labelText: "Contraseña",
-            ),
-            //Password
-            customTextField(
-              controller: _userPasswordVerificationController,
-              labelText: "Contraseña",
-            ),
-            //Loging button
-            ElevatedButton(onPressed: _SignUp, child: Text(' Registrar ')),
-          ],
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              _buildTextField(
+                controller: _userFullNameController,
+                label: 'Nombre Completo',
+                validator: (value) => value!.isEmpty ? 'Ingrese su nombre' : null,
+              ),
+              _buildTextField(
+                controller: _userEmailController,
+                label: 'Correo Electrónico',
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value!.isEmpty) return 'Ingrese su email';
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    return 'Email no válido';
+                  }
+                  return null;
+                },
+              ),
+              _buildTextField(
+                controller: _userPhoneController,
+                label: 'Teléfono',
+                keyboardType: TextInputType.phone,
+                validator: (value) => value!.isEmpty ? 'Ingrese su teléfono' : null,
+              ),
+              _buildTextField(
+                controller: _userPasswordController,
+                label: 'Contraseña',
+                obscureText: _obscurePassword,
+                validator: (value) {
+                  if (value!.isEmpty) return 'Ingrese una contraseña';
+                  if (value.length < 6) return 'Mínimo 6 caracteres';
+                  return null;
+                },
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
+              _buildTextField(
+                controller: _confirmPasswordController,
+                label: 'Confirmar Contraseña',
+                obscureText: _obscureConfirmPassword,
+                validator: (value) {
+                  if (!_passwordsMatch()) return 'Las contraseñas no coinciden';
+                  return null;
+                },
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _registerUser,
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Registrarse', style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _userEmailController.dispose();
+    _userPasswordController.dispose();
+    _userFullNameController.dispose();
+    _userPhoneController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 }

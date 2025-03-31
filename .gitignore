@@ -48,3 +48,7 @@ app.*.map.json
 /android/app/src/main/AndroidManifest.xml
 /android/app/src/debug/AndroidManifest.xml
 /android/app/src/profile/AndroidManifest.xml
+
+# Firebase configuration files
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
